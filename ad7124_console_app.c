@@ -212,8 +212,7 @@ static int32_t do_continuous_conversion(uint8_t display_mode)
     ad7124_register_map[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf));
 	ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_POWER_MODE(0x3);
 	if ((error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_ADC_Control]) ) < 0) {
-		printf("Error (%ld) setting AD7124 Continuous conversion mode.\r\n", error_code);
-		adi_press_any_key_to_continue();
+		printf("Error (%ld) setting AD7124 Continuous conversion mode.\r\n", error_code);		
 		return(MENU_CONTINUE);
 	}
 
