@@ -91,7 +91,7 @@ int32_t ad7124_app_initialize(uint8_t configID)
 
 static void spiInit() {
     // Initialize SPI port.    
-    spi_init(spi_default, 4000 * 1000);
+    spi_init(spi_default, 500 * 1000);
 
     spi_set_format(spi_default, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
 
@@ -107,10 +107,6 @@ int main() {
 	stdio_init_all();    	
 	spiInit();	
 	adi_do_console_menu(&ad7124_main_menu);		
-}
-
-static void listenkeypress(void *pvParameters) {
-	
 }
 
 // Private Functions
@@ -214,7 +210,8 @@ static int32_t do_continuous_conversion(uint8_t display_mode)
 
 	// Clear the ADC CTRL MODE bits, has the effect of selecting continuous mode
     ad7124_register_map[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf));
-	if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_ADC_Control]) ) < 0) {
+	ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_POWER_MODE(0x3);
+	if ((error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_ADC_Control]) ) < 0) {
 		printf("Error (%ld) setting AD7124 Continuous conversion mode.\r\n", error_code);
 		adi_press_any_key_to_continue();
 		return(MENU_CONTINUE);
@@ -265,12 +262,12 @@ static int32_t do_continuous_conversion(uint8_t display_mode)
 
     	if ( (error_code = ad7124_wait_for_conv_ready(pAd7124_dev, 10000)) < 0) {
     		printf("Error/Timeout waiting for conversion ready %ld\r\n", error_code);
-    		continue;
+    		return -1;
     	}
 
     	if ( (error_code = ad7124_read_data(pAd7124_dev, &sample_data)) < 0) {
 			printf("Error reading ADC Data (%ld).\r\n", error_code);
-			continue;
+			return -1;
 		}
 
 		/*
@@ -283,6 +280,7 @@ static int32_t do_continuous_conversion(uint8_t display_mode)
 			channel_samples_count[channel_read]++;
 		} else {
 			printf("Channel Read was %d, which is not < AD7124_CHANNEL_COUNT\r\n", channel_read);
+			return -1;
 		}
 
 		dislay_channel_samples(SHOW_ENABLED_CHANNELS, display_mode);
@@ -295,12 +293,144 @@ static int32_t do_continuous_conversion(uint8_t display_mode)
 
 	if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_ADC_Control]) ) < 0) {
 		printf("Error (%ld) setting AD7124 ADC into standby mode.\r\n", error_code);
-		adi_press_any_key_to_continue();
+		return -1;
 	}
 
 	return(MENU_CONTINUE);
 }
 
+static int32_t set_idle_mode() {
+	int32_t error_code = 0;
+	ad7124_register_map[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf)); //clear mode bits	
+	ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_MODE(4); //idle mode
+	if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_ADC_Control]) ) < 0) {
+		printf("Error (%ld) setting AD7124 power mode to low.\r\n", error_code);
+		adi_press_any_key_to_continue();
+		return error_code;
+	} else {
+		printf("idle mode activated\n");
+	}
+}
+
+static int32_t set_zero_scale_calibration() {
+	// 5 = system zero scale calibration
+	int32_t error_code = 0;
+	ad7124_register_map[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf));
+	ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_MODE(0b0111);
+	if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_ADC_Control]) ) < 0) {
+		printf("Error (%ld) setting AD7124 ADC into zero scale calibration.\r\n", error_code);
+		adi_press_any_key_to_continue();
+		return error_code;
+	} else {
+		printf("zero scale calibration completed\n");
+	}
+}
+
+static int32_t set_full_scale_calibration() {
+	// 6 = system full scale calibration
+	int32_t error_code = 0;
+	ad7124_register_map[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf));
+	ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_MODE(0b1000);
+	if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_ADC_Control]) ) < 0) {
+		printf("Error (%ld) setting AD7124 ADC into internal full scale calibration.\r\n", error_code);		
+		return error_code;
+	} else {
+		printf("full scale calibration completed\n");
+	}
+}
+
+static int32_t read_error() {
+	int32_t error_code;
+	error_code = ad7124_read_register( pAd7124_dev, &ad7124_register_map[AD7124_Error]);
+		if(error_code < 0) {
+			printf("error reading errorcode (%ld)", error_code);
+			return error_code;
+		} else {
+			printf("error reg: %i\n", ad7124_register_map[AD7124_Error].value);
+		}
+}
+
+static int32_t  do_fullscale_calibration() {	
+	int32_t error_code = 0;
+	int32_t channel_is_enabled = 0;	
+	
+
+	for (uint8_t i = 0; i < 8; i++)
+	{
+		//write zero in offset register of each configuration 
+		ad7124_register_map[AD7124_Offset_0+i].value = 0x800000;
+		if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_Offset_0+i]) ) < 0) {
+			printf("Error (%ld) writing offset for setup 0.\r\n", error_code);
+			return error_code;			
+		}
+	}
+			
+	//disable all channels
+	for (uint8_t i = 0; i < AD7124_CHANNEL_COUNT; i++) {		
+		if (ad7124_register_map[AD7124_Channel_0 + i].value & AD7124_CH_MAP_REG_CH_ENABLE) {
+			channel_is_enabled += (1 << i);			
+		}
+		//disable for now
+		ad7124_register_map[AD7124_Channel_0 + i].value &= ~(AD7124_CH_MAP_REG_CH_ENABLE);
+		if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_Channel_0 + i]) ) < 0) {
+			printf("Error (%ld) enable channel %i.\r\n", error_code, i);
+			return error_code;
+		} else {
+			printf("disabled channel %i\n", i);
+		}
+			
+	}
+	
+	for (uint8_t i = 0; i < AD7124_CHANNEL_COUNT; i++) { 
+		if(channel_is_enabled & (1<<i)) {
+			//enable for calibration
+			ad7124_register_map[AD7124_Channel_0 + i].value |= (AD7124_CH_MAP_REG_CH_ENABLE);
+			if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_Channel_0 + i]) ) < 0) {
+				printf("Error (%ld) disable channel %i.\r\n", error_code, i);
+				adi_press_any_key_to_continue();
+				return error_code;
+			} else {				
+				printf("enabled channel %i\n", i);
+			}
+			//sleep_ms(150);									
+			
+			set_zero_scale_calibration();											
+			ad7124_wait_for_conv_ready(pAd7124_dev, 10000);
+			
+			//sleep_ms(150);						
+			//ad7124_wait_for_conv_ready(pAd7124_dev, 10000);
+			//set_full_scale_calibration();
+			//ad7124_wait_for_conv_ready(pAd7124_dev, 10000);
+			//sleep_ms(150);
+			
+			ad7124_register_map[AD7124_Channel_0 + i].value &= ~(AD7124_CH_MAP_REG_CH_ENABLE);
+			if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_Channel_0 + i]) ) < 0) {
+				printf("Error (%ld) enable channel %i.\r\n", error_code, i);
+				adi_press_any_key_to_continue();
+				return error_code;
+			} else {
+				printf("disabled channel %i\n", i);
+			}
+			
+		}
+	}
+	for (uint8_t i = 0; i < AD7124_CHANNEL_COUNT; i++) { 
+		if(channel_is_enabled & (1<<i)) {
+			ad7124_register_map[AD7124_Channel_0 + i].value |= AD7124_CH_MAP_REG_CH_ENABLE;
+			if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_Channel_0 + i]) ) < 0) {
+				printf("Error (%ld) enable channel %i.\r\n", error_code, i);
+				return error_code;
+			} else {
+				printf("enabled channel %i\n", i);
+			}
+		}
+	}
+	
+	// All done, ADC put into standby mode
+    ad7124_register_map[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf));
+    // 2 = sleep/standby mode
+    ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_MODE(2);
+}
 
 /*!
  * @brief      Samples all enabled channels and displays in tabular form
@@ -317,6 +447,18 @@ static int32_t menu_continuous_conversion_tabular(void)
 	adi_press_any_key_to_continue();
 
 	return(MENU_CONTINUE);
+}
+
+/*!
+ * @brief      Internal full-scale (gain) calibration.
+ *
+ * @details
+ */
+static int32_t menu_fullscale_calibration(void){
+	do_fullscale_calibration();
+	printf("calibration completed...\r\n\r\n");
+	adi_press_any_key_to_continue();
+	return 0;
 }
 
 
@@ -495,28 +637,6 @@ static void init_with_configuration(uint8_t configID)
 	adi_press_any_key_to_continue();
 }
 
-
-/*
- * @brief      Sends a reset command on the SPI to reset the AD7124
- *
- * @details
- */
-static int32_t menu_reset(void)
-{
-	if (ad7124_reset(pAd7124_dev)  < 0)
-	{
-		printf("\r\n\r\n Error performing Reset\r\n\r\n");
-	} else
-	{
-		// Need to set the live register map to defaults as well
-		memcpy(ad7124_register_map, ad7124_regs, sizeof(ad7124_register_map));
-		printf("\r\n\r\n Reset Complete\r\n\r\n");
-	}
-	adi_press_any_key_to_continue();
-	return(MENU_CONTINUE);
-}
-
-
 /*!
  * @brief      Reset and set the ad7124 with configuration A
  *
@@ -548,6 +668,7 @@ static console_menu_item acquisition_menu_items[] = {
 		{"Single Conversion Mode",	                 	'S', menu_single_conversion},
 	    {"Continuous Conversion Mode - Table View",	    'T', menu_continuous_conversion_tabular},
 		{"Continuous Conversion Mode - Stream Data",	'C', menu_continuous_conversion_stream},
+		
 };
 
 static console_menu acquisition_menu = {
@@ -572,15 +693,15 @@ static int32_t menu_sample_channels(void)
 /*
  * Definition of the Main Menu Items and menu itself
  */
-console_menu_item main_menu_items[] = {
-	{"Reset to Default Configuration",	'R', menu_reset},
-	{"Reset to Configuration A",		'A', menu_reset_to_configuration_a},
-    {"Reset to Configuration B",		'B', menu_reset_to_configuration_b},
+console_menu_item main_menu_items[] = {	
+	{"Set to Configuration A",		'A', menu_reset_to_configuration_a},
+    {"Set to Configuration B",		'B', menu_reset_to_configuration_b},
 	{"", 								'\00', NULL},
 	{"Read ID Register",				'I', menu_read_id},
 	{"Read Status Register",			'T', menu_read_status},
 	{"", 								'\00', NULL},
     {"Sample Channels...",				'S', menu_sample_channels},
+	{"Zero and full scale calibration", 'Z', menu_fullscale_calibration},
 };
 
 console_menu ad7124_main_menu = {

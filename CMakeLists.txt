@@ -20,7 +20,7 @@ pico_sdk_init()
 add_executable(${PROJECT_NAME} 
     #main.c
     ad7124_console_app.c
-    ad7124_regs.c
+    
     ad7124_support.c
     ad7124.c
     adi_console_menu.c    
