@@ -38,6 +38,8 @@ Copyright (c) 2019 Analog Devices, Inc.  All rights reserved.
 #define DISPLAY_DATA_TABULAR    0
 #define DISPLAY_DATA_STREAM     1
 
+#define trigger_gpio 2
+
 /*
  * This is the 'live' AD7124 register map that is used by the driver
  * the other 'default' configs are used to populate this at init time
@@ -87,6 +89,7 @@ int32_t ad7124_app_initialize(uint8_t configID)
 static void spiInit() {
     // Initialize SPI port.    
     spi_init(spi_default, 500 * 1000);
+	
 
     spi_set_format(spi_default, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
 
@@ -101,6 +104,9 @@ static void spiInit() {
 int main() {
 	stdio_init_all();    	
 	spiInit();	
+	gpio_init(trigger_gpio);
+	gpio_set_dir(trigger_gpio, GPIO_IN);
+	gpio_pull_up(trigger_gpio);
 	ad7124_app_initialize(AD7124_CONFIG_A);	
 	adi_do_console_menu(&ad7124_main_menu);		
 }
@@ -131,9 +137,12 @@ static void read_status_register(void)
  */
 static int32_t do_continuous_conversion()
 {
+
+	
+
 	int32_t error_code;
 	int32_t sample_data;
-
+	
 	// Clear the ADC CTRL MODE bits, has the effect of selecting continuous mode
 	ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_POWER_MODE(0x2);
     ad7124_register_map[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf));	
@@ -160,20 +169,22 @@ static int32_t do_continuous_conversion()
 				return -1;
 			}
 		channel_read = ad7124_register_map[AD7124_Status].value & 0x0000000F;
-		//if(ad7124_register_map[AD7124_Channel_0 + channel_read].value & AD7124_CH_MAP_REG_CH_ENABLE) {
+		if(ad7124_register_map[AD7124_Channel_0 + channel_read].value & AD7124_CH_MAP_REG_CH_ENABLE) {
 
 			if ( (error_code = ad7124_read_data(pAd7124_dev, &sample_data)) < 0) {
 				printf("Error reading ADC Data (%ld).\r\n", error_code);
 				return -1;
 			}
 			
-			if (channel_read == 0) {
+			if (channel_read == 0) {				
 				printf("\n%09d, ", to_ms_since_boot(get_absolute_time()));
+				printf("%i, ", gpio_get(trigger_gpio));
 			} else {
 				printf(", ");
 			}
-			printf("%.6f", ad7124_convert_sample_to_voltage(pAd7124_dev, channel_read, sample_data) );				
-		//}		
+			
+			printf("%.8f", ad7124_convert_sample_to_voltage(pAd7124_dev, channel_read, sample_data) );				
+		}		
 	}		
 
     
@@ -345,7 +356,7 @@ static int32_t menu_fullscale_calibration(void){
  */
 static int32_t menu_continuous_conversion_stream(void)
 {
-	do_continuous_conversion(DISPLAY_DATA_STREAM);
+	do_continuous_conversion();
 	printf("Continuous Conversion completed...\r\n\r\n");
 	adi_press_any_key_to_continue();
 	return(MENU_CONTINUE);
