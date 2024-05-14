@@ -38,7 +38,7 @@ Copyright (c) 2019 Analog Devices, Inc.  All rights reserved.
 #define DISPLAY_DATA_TABULAR    0
 #define DISPLAY_DATA_STREAM     1
 
-#define trigger_gpio 2
+
 
 /*
  * This is the 'live' AD7124 register map that is used by the driver
@@ -100,13 +100,21 @@ static void spiInit() {
 }
 
 //static volatile signed char receivedChar[10] = {0};
+void initgpios () {
+  for(int i = 0; i < 8; i++) {
+    gpio_init(i);
+    gpio_set_dir(i, GPIO_IN);     
+	gpio_pull_up(i);
+  }  
+}  
+
+
 
 int main() {
 	stdio_init_all();    	
 	spiInit();	
-	gpio_init(trigger_gpio);
-	gpio_set_dir(trigger_gpio, GPIO_IN);
-	gpio_pull_up(trigger_gpio);
+	initgpios();
+	
 	ad7124_app_initialize(AD7124_CONFIG_A);	
 	adi_do_console_menu(&ad7124_main_menu);		
 }
@@ -142,6 +150,7 @@ static int32_t do_continuous_conversion(bool doVoltageConvertion)
 
 	int32_t error_code;
 	int32_t sample_data;
+	uint32_t portvalues;
 	
 	// Clear the ADC CTRL MODE bits, has the effect of selecting continuous mode
 	ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_POWER_MODE(0x2);
@@ -178,7 +187,9 @@ static int32_t do_continuous_conversion(bool doVoltageConvertion)
 			
 			if (channel_read == 0) {				
 				printf("\n%09d, ", to_ms_since_boot(get_absolute_time()));
-				printf("%i, ", gpio_get(trigger_gpio));
+				portvalues = gpio_get_all();
+        		
+				printf("%i, ", portvalues & 0XFF);
 			} else {
 				printf(", ");
 			}
