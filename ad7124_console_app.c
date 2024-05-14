@@ -38,7 +38,7 @@ Copyright (c) 2019 Analog Devices, Inc.  All rights reserved.
 #define DISPLAY_DATA_TABULAR    0
 #define DISPLAY_DATA_STREAM     1
 
-#define trigger_gpio 2
+
 
 /*
  * This is the 'live' AD7124 register map that is used by the driver
@@ -100,13 +100,21 @@ static void spiInit() {
 }
 
 //static volatile signed char receivedChar[10] = {0};
+void initgpios () {
+  for(int i = 0; i < 8; i++) {
+    gpio_init(i);
+    gpio_set_dir(i, GPIO_IN);     
+	gpio_pull_up(i);
+  }  
+}  
+
+
 
 int main() {
 	stdio_init_all();    	
 	spiInit();	
-	gpio_init(trigger_gpio);
-	gpio_set_dir(trigger_gpio, GPIO_IN);
-	gpio_pull_up(trigger_gpio);
+	initgpios();
+	
 	ad7124_app_initialize(AD7124_CONFIG_A);	
 	adi_do_console_menu(&ad7124_main_menu);		
 }
@@ -135,13 +143,14 @@ static void read_status_register(void)
  *            and assigned to the channel they come from. Escape key an be used
  *            to exit the loop
  */
-static int32_t do_continuous_conversion()
+static int32_t do_continuous_conversion(bool doVoltageConvertion)
 {
 
 	
 
 	int32_t error_code;
 	int32_t sample_data;
+	uint32_t portvalues;
 	
 	// Clear the ADC CTRL MODE bits, has the effect of selecting continuous mode
 	ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_POWER_MODE(0x2);
@@ -178,12 +187,15 @@ static int32_t do_continuous_conversion()
 			
 			if (channel_read == 0) {				
 				printf("\n%09d, ", to_ms_since_boot(get_absolute_time()));
-				printf("%i, ", gpio_get(trigger_gpio));
+				portvalues = gpio_get_all();
+        		
+				printf("%i, ", portvalues & 0XFF);
 			} else {
 				printf(", ");
 			}
-			
-			printf("%.8f", ad7124_convert_sample_to_voltage(pAd7124_dev, channel_read, sample_data) );				
+			if(doVoltageConvertion) {
+				printf("%.8f", ad7124_convert_sample_to_voltage(pAd7124_dev, channel_read, sample_data) );				
+			} else { printf("%i", sample_data); }
 		}		
 	}		
 
@@ -354,14 +366,20 @@ static int32_t menu_fullscale_calibration(void){
  *
  * @details
  */
-static int32_t menu_continuous_conversion_stream(void)
+static int32_t menu_continuous_conversion_stream()
 {
-	do_continuous_conversion();
-	printf("Continuous Conversion completed...\r\n\r\n");
+	do_continuous_conversion(true);
+	printf("Continuous Conversion completed...\n");
 	adi_press_any_key_to_continue();
 	return(MENU_CONTINUE);
 }
 
+static int32_t menu_raw_conversion_stream() {
+	do_continuous_conversion(false);
+	printf("Continuous Conversion completed...\n");
+	adi_press_any_key_to_continue();
+	return(MENU_CONTINUE);
+}
 
 /*!
  * @brief      menu item that reads the status register the AD7124
@@ -450,6 +468,7 @@ static int32_t menu_reset_to_configuration_b(void)
  */
 console_menu_item main_menu_items[] = {			
     {"Start continuous conversion",		'S', menu_continuous_conversion_stream},
+	{"Continous conversion raw",		'R', menu_raw_conversion_stream},
 	{"", 								'\00', NULL},
 	{"Zero and full scale calibration", 'Z', menu_fullscale_calibration},
 	{"Read Status Register",			'T', menu_read_status},	
