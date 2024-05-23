@@ -104,7 +104,7 @@ void initgpios () {
   for(int i = 0; i < 8; i++) {
     gpio_init(i);
     gpio_set_dir(i, GPIO_IN);     
-	gpio_pull_up(i);
+	//gpio_pull_down(i);
   }  
 }  
 
