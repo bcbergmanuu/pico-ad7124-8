@@ -11,11 +11,11 @@ Copyright (c) 2019 Analog Devices, Inc.
 
 #include "ad7124_regs.h"
 
-#define filterFS 30
+#define filterFS 120 //160hz 1 channel
 
 const struct ad7124_st_reg ad7124_regs_config_a[AD7124_REG_NO] = {
     {0x00, 0x00,   1, 2}, /* AD7124_Status */
-	{0x01, AD7124_ADC_CTRL_REG_MODE(2) | AD7124_ADC_CTRL_REG_POWER_MODE(3) | AD7124_ADC_CTRL_REG_CLK_SEL(0) | AD7124_ADC_CTRL_REG_REF_EN, 2, 1}, /* AD7124_ADC_Control */
+	{0x01, AD7124_ADC_CTRL_REG_MODE(2) | AD7124_ADC_CTRL_REG_POWER_MODE(3) | AD7124_ADC_CTRL_REG_CLK_SEL(3) | AD7124_ADC_CTRL_REG_REF_EN, 2, 1}, /* AD7124_ADC_Control */
 	{0x02, 0x0000, 3, 2}, /* AD7124_Data */
 	{0x03, 0x0000, 3, 1}, /* AD7124_IOCon1 */
 	{0x04, 0x0000, 2, 1}, /* AD7124_IOCon2 */
@@ -40,7 +40,7 @@ const struct ad7124_st_reg ad7124_regs_config_a[AD7124_REG_NO] = {
 	{0x16, 0x0001, 2, 1}, /* AD7124_Channel_13 */
 	{0x17, 0x0001, 2, 1}, /* AD7124_Channel_14 */
 	{0x18, 0x0001, 2, 1}, /* AD7124_Channel_15 */
-	{0x19, AD7124_CFG_REG_BURNOUT(0) | AD7124_CFG_REG_REF_SEL(0b10) | AD7124_CFG_REG_PGA(0), 2, 1}, /* AD7124_Config_0 */
+	{0x19, AD7124_CFG_REG_REF_SEL(0b00) | AD7124_CFG_REG_BIPOLAR | AD7124_CFG_REG_PGA(0), 2, 1}, /* AD7124_Config_0 */
 	{0x1A, 0x0001, 2, 1}, /* AD7124_Config_1 */
 	{0x1B, 0x0001, 2, 1}, /* AD7124_Config_2 */
 	{0x1C, 0x0001, 2, 1}, /* AD7124_Config_3 */

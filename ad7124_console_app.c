@@ -128,19 +128,19 @@ int main() {
  */
 static void read_status_register(void)
 {
-	if (ad7124_read_register(pAd7124_dev, &ad7124_register_map[AD7124_Status]) < 0) {
+	if (ad7124_read_register(pAd7124_dev, &pAd7124_dev->regs[AD7124_Status]) < 0) {
 	   printf("\r\nError Encountered reading Status register\r\n");
 	} else {
-	    uint32_t status_value = (uint32_t)ad7124_register_map[AD7124_Status].value;
+	    uint32_t status_value = (uint32_t)pAd7124_dev->regs[AD7124_Status].value;
         printf("\r\nRead Status Register = 0x%02lx\r\n", status_value);
 	}
 }
 
 static int32_t set_idle_mode() {
 	int32_t error_code = 0;
-	ad7124_register_map[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf)); //clear mode bits	
-	ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_MODE(4); //idle mode
-	if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_ADC_Control]) ) < 0) {
+	pAd7124_dev->regs[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf)); //clear mode bits	
+	pAd7124_dev->regs[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_MODE(4); //idle mode
+	if ( (error_code = ad7124_write_register(pAd7124_dev, pAd7124_dev->regs[AD7124_ADC_Control]) ) < 0) {
 		printf("Error (%ld) setting AD7124 power mode to low.\r\n", error_code);
 		adi_press_any_key_to_continue();
 		return error_code;
@@ -165,13 +165,15 @@ static int32_t do_continuous_conversion(bool doVoltageConvertion)
 	int32_t sample_data;
 	uint32_t portvalues;
 	
-	//select continuous convertion mode
+	//select continuous convertion mode, all zero
 	pAd7124_dev->regs[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf));
+
+	
 	//select full power
 	pAd7124_dev->regs[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_POWER_MODE(0x3));
 	pAd7124_dev->regs[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_POWER_MODE(0x2);
 
-	if ((error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_ADC_Control]) ) < 0) {
+	if ((error_code = ad7124_write_register(pAd7124_dev, pAd7124_dev->regs[AD7124_ADC_Control]) < 0)) {
 		printf("Error (%ld) setting AD7124 Continuous conversion mode.\r\n", error_code);		
 		return(MENU_CONTINUE);
 	}
@@ -193,8 +195,8 @@ static int32_t do_continuous_conversion(bool doVoltageConvertion)
 				printf("Error/Timeout waiting for conversion ready %ld\r\n", error_code);
 				return -1;
 			}
-		channel_read = ad7124_register_map[AD7124_Status].value & 0x0000000F;
-		if(ad7124_register_map[AD7124_Channel_0 + channel_read].value & AD7124_CH_MAP_REG_CH_ENABLE) {
+		channel_read = pAd7124_dev->regs[AD7124_Status].value & 0x0000000F;
+		if(pAd7124_dev->regs[AD7124_Channel_0 + channel_read].value & AD7124_CH_MAP_REG_CH_ENABLE) {
 
 			if ( (error_code = ad7124_read_data(pAd7124_dev, &sample_data)) < 0) {
 				printf("Error reading ADC Data (%ld).\r\n", error_code);
@@ -227,9 +229,9 @@ static int32_t do_continuous_conversion(bool doVoltageConvertion)
 static int32_t set_zero_scale_calibration() {
 	// 5 = system zero scale calibration
 	int32_t error_code = 0;
-	ad7124_register_map[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf) | AD7124_ADC_CTRL_REG_POWER_MODE(0x3));
-	ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_MODE(0b0111) | AD7124_ADC_CTRL_REG_POWER_MODE(0x01);
-	if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_ADC_Control]) ) < 0) {
+	pAd7124_dev->regs[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf) | AD7124_ADC_CTRL_REG_POWER_MODE(0x3));
+	pAd7124_dev->regs[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_MODE(0b0111) | AD7124_ADC_CTRL_REG_POWER_MODE(0x01);
+	if ( (error_code = ad7124_write_register(pAd7124_dev, pAd7124_dev->regs[AD7124_ADC_Control]) ) < 0) {
 		printf("Error (%ld) setting AD7124 ADC into zero scale calibration.\r\n", error_code);
 		adi_press_any_key_to_continue();
 		return error_code;
@@ -241,9 +243,9 @@ static int32_t set_zero_scale_calibration() {
 static int32_t set_full_scale_calibration() {
 	// 6 = system full scale calibration
 	int32_t error_code = 0;
-	ad7124_register_map[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf) | AD7124_ADC_CTRL_REG_POWER_MODE(0x3) );
-	ad7124_register_map[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_MODE(0b1000) | AD7124_ADC_CTRL_REG_POWER_MODE(0x01);
-	if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[AD7124_ADC_Control]) ) < 0) {
+	pAd7124_dev->regs[AD7124_ADC_Control].value &= ~(AD7124_ADC_CTRL_REG_MODE(0xf) | AD7124_ADC_CTRL_REG_POWER_MODE(0x3) );
+	pAd7124_dev->regs[AD7124_ADC_Control].value |= AD7124_ADC_CTRL_REG_MODE(0b1000) | AD7124_ADC_CTRL_REG_POWER_MODE(0x01);
+	if ( (error_code = ad7124_write_register(pAd7124_dev, pAd7124_dev->regs[AD7124_ADC_Control]) ) < 0) {
 		printf("Error (%ld) setting AD7124 ADC into internal full scale calibration.\r\n", error_code);		
 		return error_code;
 	} else {
@@ -253,28 +255,36 @@ static int32_t set_full_scale_calibration() {
 
 static int32_t read_error() {
 	int32_t error_code;
-	error_code = ad7124_read_register( pAd7124_dev, &ad7124_register_map[AD7124_Error]);
+	error_code = ad7124_read_register( pAd7124_dev, &pAd7124_dev->regs[AD7124_Error]);
 		if(error_code < 0) {
 			printf("error reading errorcode (%ld)", error_code);
 			return error_code;
 		} else {
-			printf("error reg: %i\n", ad7124_register_map[AD7124_Error].value);
+			printf("error reg: %i\n", pAd7124_dev->regs[AD7124_Error].value);
 		}
 }
+
+
 
 static int32_t set_slow_filters(bool enable) {
 	//set high filter for calibration
 	int32_t error_code = 0;
-	enum ad7124_registers reg_nr;
+	enum ad7124_registers reg_nr;	
 	
 	for(reg_nr = AD7124_Filter_0; (reg_nr < AD7124_Offset_0) && !(error_code < 0); reg_nr++) {
-		if(enable) {			
-			struct ad7124_st_reg reg = pAd7124_dev->regs[reg_nr];			
-			reg.value = AD7124_FILT_REG_FS(2047) | AD7124_FILT_REG_REJ60 | AD7124_FILT_REG_POST_FILTER(0b110); //everything max
+		if(enable) {									
+			struct ad7124_st_reg reg;
+			reg=pAd7124_dev->regs[reg_nr];
+			reg.value = AD7124_FILT_REG_FS(1024) | AD7124_FILT_REG_REJ60 | AD7124_FILT_REG_POST_FILTER(0b110); //cannot use higher than 1024, don't know why...
 			error_code = ad7124_write_register(pAd7124_dev, reg);			
+			//printf("set slow filters: %d\n", reg.value);			
 		} else {
+			// struct ad7124_st_reg reg;
+			// reg=pAd7124_dev->regs[reg_nr];
+			// reg.value = 0;
+			// error_code = ad7124_write_register(pAd7124_dev, reg); //zero all?
 			error_code = ad7124_write_register(pAd7124_dev, pAd7124_dev->regs[reg_nr]); //original value
-			
+			//printf("set original filters: %d\n", pAd7124_dev->regs[reg_nr].value);			
 		}						
 		if (error_code < 0) break;		
 	}			
@@ -303,7 +313,7 @@ static int32_t do_fullscale_calibration() {
 	{
 		//write zero in offset register of each configuration 
 		pAd7124_dev->regs[i].value = 0x800000;
-		if ( (error_code = ad7124_write_register(pAd7124_dev, ad7124_register_map[i]) ) < 0) {
+		if ( (error_code = ad7124_write_register(pAd7124_dev, pAd7124_dev->regs[i]) ) < 0) {
 			printf("Error (%ld) writing offset for setup 0.\r\n", error_code);
 			return error_code;			
 		}
@@ -404,11 +414,11 @@ static int32_t menu_read_status(void)
  */
 static int32_t menu_read_id(void)
 {
-	if (ad7124_read_register(pAd7124_dev, &ad7124_register_map[AD7124_ID]) < 0) {
+	if (ad7124_read_register(pAd7124_dev, &pAd7124_dev->regs[AD7124_ID]) < 0) {
 	   printf("\r\nError Encountered reading ID register\r\n");
 	} else {
 	   printf("\r\nRead ID Register = 0x%02lx\r\n",
-			   (uint32_t)ad7124_register_map[AD7124_ID].value );
+			   (uint32_t)pAd7124_dev->regs[AD7124_ID].value );
 	}
 	adi_press_any_key_to_continue();
 	return(MENU_CONTINUE);
