@@ -68,12 +68,7 @@ int32_t ad7124_app_initialize(uint8_t configID)
 		{
 			memcpy(ad7124_register_map, ad7124_regs_config_a, sizeof(ad7124_register_map));
 			break;
-		}
-		case AD7124_CONFIG_B:
-		{
-			memcpy(ad7124_register_map, ad7124_regs_config_b, sizeof(ad7124_register_map));
-			break;
-		}		
+		}	
 	}
 
 	// Used to create the ad7124 device

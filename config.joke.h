@@ -11,7 +11,6 @@ Copyright (c) 2019 Analog Devices, Inc.
 
 #include "ad7124_regs.h"
 
-//#define filterFS 22 //stella
 #define filterFS 44 //joke
 
 const struct ad7124_st_reg ad7124_regs_config_a[AD7124_REG_NO] = {

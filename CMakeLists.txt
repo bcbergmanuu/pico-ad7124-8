@@ -24,8 +24,7 @@ add_executable(${PROJECT_NAME}
     ad7124_support.c
     ad7124.c
     adi_console_menu.c    
-    ad7124_regs_config_a.c
-    ad7124_regs_config_b.c
+    configuration.c    
 )
 
 
