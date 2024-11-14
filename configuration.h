@@ -1,6 +1,6 @@
 #ifndef __CONFIGURATION
 #define __CONFIGURATION
 
-#include "config.paul.h"
+#include "config.joke.h"
 
 #endif

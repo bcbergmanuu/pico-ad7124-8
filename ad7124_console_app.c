@@ -177,11 +177,13 @@ static int32_t do_continuous_conversion(bool doVoltageConvertion)
 	uint8_t channel_read = 0;							
 	// Continuously read the channels, and store sample values
 	int pressedchar = 0;
+	bool set_next_to_zero = false;
     while (pressedchar !=27) {  		  			    	
 		pressedchar = getchar_timeout_us(0);
 		if(pressedchar == 48) {
-			toZeroValue = to_ms_since_boot(get_absolute_time());
+			set_next_to_zero = true;
 		}
+
 		/*
 		*  this polls the status register READY/ bit to determine when conversion is done
 		*  this also ensures the STATUS register value is up to date and contains the
@@ -202,8 +204,15 @@ static int32_t do_continuous_conversion(bool doVoltageConvertion)
 				return -1;
 			}
 			
-			if (channel_read == 0) {				
-				printf("\n%09d, ", to_ms_since_boot(get_absolute_time()) - toZeroValue);
+			if (channel_read == 0) {	
+				if(set_next_to_zero) {
+					set_next_to_zero = false;
+					toZeroValue = to_ms_since_boot(get_absolute_time());
+					printf("\n%09d, ", 0);
+				} else {
+					printf("\n%09d, ", to_ms_since_boot(get_absolute_time()) - toZeroValue);
+				}			
+				
 				portvalues = gpio_get_all();
         		
 				printf("%i, ", portvalues & 0XFF);
