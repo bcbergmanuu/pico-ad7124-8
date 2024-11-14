@@ -11,12 +11,12 @@ Copyright (c) 2019 Analog Devices, Inc.
 
 #include "ad7124_regs.h"
 
-#define filterFS 44
-#define boardname "BALANCEBOARD02"
+#define boardname "respiratory"
+#define filterFS 720
 
 const struct ad7124_st_reg ad7124_regs_config_a[AD7124_REG_NO] = {
     {0x00, 0x00,   1, 2}, /* AD7124_Status */
-	{0x01, AD7124_ADC_CTRL_REG_MODE(2) | AD7124_ADC_CTRL_REG_POWER_MODE(3) | AD7124_ADC_CTRL_REG_CLK_SEL(3), 2, 1}, /* AD7124_ADC_Control */
+	{0x01, AD7124_ADC_CTRL_REG_MODE(2) | AD7124_ADC_CTRL_REG_POWER_MODE(3) | AD7124_ADC_CTRL_REG_CLK_SEL(3) | AD7124_ADC_CTRL_REG_REF_EN, 2, 1}, /* AD7124_ADC_Control */
 	{0x02, 0x0000, 3, 2}, /* AD7124_Data */
 	{0x03, 0x0000, 3, 1}, /* AD7124_IOCon1 */
 	{0x04, 0x0000, 2, 1}, /* AD7124_IOCon2 */
@@ -24,14 +24,14 @@ const struct ad7124_st_reg ad7124_regs_config_a[AD7124_REG_NO] = {
 	{0x06, 0x0000, 3, 2}, /* AD7124_Error */
 	{0x07, AD7124_ERREN_REG_ADC_SAT_ERR_EN | AD7124_ERREN_REG_ADC_CONV_ERR_EN | AD7124_ERREN_REG_ADC_CAL_ERR_EN | 
 	AD7124_ERREN_REG_SPI_IGNORE_ERR_EN | AD7124_ERREN_REG_AINM_OV_ERR_EN | AD7124_ERREN_REG_AINM_UV_ERR_EN | AD7124_ERREN_REG_REF_DET_ERR_EN, 3, 1}, /* AD7124_Error_En (enable everything here asap) */
-	{0x08, 0x00,   1, 2}, /* AD7124_Mclk_Count */
+	{0x08, 0x0001,   1, 2}, /* AD7124_Mclk_Count */
 	{0x09, AD7124_CH_MAP_REG_CH_ENABLE | AD7124_CH_MAP_REG_SETUP(0) | AD7124_CH_MAP_REG_AINP(0) | AD7124_CH_MAP_REG_AINM(1), 2, 1}, /* AD7124_Channel_0 */
-	{0x0A, AD7124_CH_MAP_REG_CH_ENABLE | AD7124_CH_MAP_REG_SETUP(1) | AD7124_CH_MAP_REG_AINP(2) | AD7124_CH_MAP_REG_AINM(3), 2, 1}, /* AD7124_Channel_1 */
-	{0x0B, AD7124_CH_MAP_REG_CH_ENABLE | AD7124_CH_MAP_REG_SETUP(2) | AD7124_CH_MAP_REG_AINP(4) | AD7124_CH_MAP_REG_AINM(5), 2, 1}, /* AD7124_Channel_2 */
-	{0x0C, AD7124_CH_MAP_REG_CH_ENABLE | AD7124_CH_MAP_REG_SETUP(3) | AD7124_CH_MAP_REG_AINP(6) | AD7124_CH_MAP_REG_AINM(7), 2, 1}, /* AD7124_Channel_3 */
-	{0x0D, 0x0001,2,1},
-	{0x0E, 0x0001,2,1},
-	{0x0F, 0x0001,2,1},
+	{0x0A, 0x0001, 2, 1}, /* AD7124_Channel_1 */
+	{0x0B, 0x0001, 2, 1}, /* AD7124_Channel_2 */
+	{0x0C, 0x0001, 2, 1}, /* AD7124_Channel_3 */
+	{0x0D, 0x0001, 2, 1}, /* AD7124_Channel_4 */
+	{0x0E, 0x0001, 2, 1}, /* AD7124_Channel_5 */
+	{0x0F, 0x0001, 2, 1}, /* AD7124_Channel_6 */
 	{0x10, 0x0001, 2, 1}, /* AD7124_Channel_7 */
 	{0x11, 0x0001, 2, 1}, /* AD7124_Channel_8 */
 	{0x12, 0x0001, 2, 1}, /* AD7124_Channel_9 */
@@ -41,22 +41,22 @@ const struct ad7124_st_reg ad7124_regs_config_a[AD7124_REG_NO] = {
 	{0x16, 0x0001, 2, 1}, /* AD7124_Channel_13 */
 	{0x17, 0x0001, 2, 1}, /* AD7124_Channel_14 */
 	{0x18, 0x0001, 2, 1}, /* AD7124_Channel_15 */
-	{0x19, AD7124_CFG_REG_BIPOLAR | AD7124_CFG_REG_BURNOUT(0) | AD7124_CFG_REG_REF_SEL(0) | AD7124_CFG_REG_PGA(7), 2, 1}, /* AD7124_Config_0 */
-	{0x1A, AD7124_CFG_REG_BIPOLAR | AD7124_CFG_REG_BURNOUT(0) | AD7124_CFG_REG_REF_SEL(0) | AD7124_CFG_REG_PGA(7), 2, 1}, /* AD7124_Config_1 */
-	{0x1B, AD7124_CFG_REG_BIPOLAR | AD7124_CFG_REG_BURNOUT(0) | AD7124_CFG_REG_REF_SEL(0) | AD7124_CFG_REG_PGA(7), 2, 1}, /* AD7124_Config_2 */
-	{0x1C, AD7124_CFG_REG_BIPOLAR | AD7124_CFG_REG_BURNOUT(0) | AD7124_CFG_REG_REF_SEL(0) | AD7124_CFG_REG_PGA(7), 2, 1}, /* AD7124_Config_3 */
-	{0x1D, AD7124_CFG_REG_BIPOLAR | AD7124_CFG_REG_BURNOUT(0) | AD7124_CFG_REG_REF_SEL(0) | AD7124_CFG_REG_PGA(7), 2, 1}, /* AD7124_Config_4 */
-	{0x1E, AD7124_CFG_REG_BIPOLAR | AD7124_CFG_REG_BURNOUT(0) | AD7124_CFG_REG_REF_SEL(0) | AD7124_CFG_REG_PGA(7), 2, 1}, /* AD7124_Config_5 */
-	{0x1F, AD7124_CFG_REG_BIPOLAR | AD7124_CFG_REG_BURNOUT(0) | AD7124_CFG_REG_REF_SEL(0) | AD7124_CFG_REG_PGA(7), 2, 1}, /* AD7124_Config_6 */
-	{0x20, AD7124_CFG_REG_BIPOLAR | AD7124_CFG_REG_BURNOUT(0) | AD7124_CFG_REG_REF_SEL(0) | AD7124_CFG_REG_PGA(7), 2, 1}, /* AD7124_Config_7 */
+	{0x19, AD7124_CFG_REG_REF_SEL(0) | AD7124_CFG_REG_BIPOLAR | AD7124_CFG_REG_PGA(5), 2, 1}, /* AD7124_Config_0 */
+	{0x1A, 0x0001, 2, 1}, /* AD7124_Config_1 */
+	{0x1B, 0x0001, 2, 1}, /* AD7124_Config_2 */
+	{0x1C, 0x0001, 2, 1}, /* AD7124_Config_3 */
+	{0x1D, 0x0001, 2,1 }, /* AD7124_Config_4 */
+	{0x1E, 0x0001, 2,1 },/* AD7124_Config_5 */
+	{0x1F, 0x0001, 2,1 },/* AD7124_Config_6 */
+	{0x20, 0x0001, 2,1 },/* AD7124_Config_7 */
 	{0x21, AD7124_FILT_REG_FS(filterFS), 3, 1}, /* AD7124_Filter_0 */
 	{0x22, AD7124_FILT_REG_FS(filterFS), 3, 1}, /* AD7124_Filter_1 */
-	{0x23, AD7124_FILT_REG_FS(filterFS), 3, 1}, /* AD7124_Filter_2 */
-	{0x24, AD7124_FILT_REG_FS(filterFS), 3, 1}, /* AD7124_Filter_3 */
-	{0x25, AD7124_FILT_REG_FS(filterFS), 3, 1}, /* AD7124_Filter_4 */
-	{0x26, AD7124_FILT_REG_FS(filterFS), 3, 1}, /* AD7124_Filter_5 */
-	{0x27, AD7124_FILT_REG_FS(filterFS), 3, 1}, /* AD7124_Filter_6 */
-	{0x28, AD7124_FILT_REG_FS(filterFS), 3, 1}, /* AD7124_Filter_7 */
+	{0x23, AD7124_FILT_REG_FS(filterFS), 3, 1},/* AD7124_Filter_2 */
+	{0x24, AD7124_FILT_REG_FS(filterFS), 3, 1},/* AD7124_Filter_3 */
+	{0x25, AD7124_FILT_REG_FS(filterFS), 3, 1},/* AD7124_Filter_4 */
+	{0x26, AD7124_FILT_REG_FS(filterFS), 3, 1},/* AD7124_Filter_5 */
+	{0x27, AD7124_FILT_REG_FS(filterFS), 3, 1},/* AD7124_Filter_6 */
+	{0x28, AD7124_FILT_REG_FS(filterFS), 3, 1},/* AD7124_Filter_7 */
 	{0x29, 0x800000, 3, 1}, /* AD7124_Offset_0 */
 	{0x2A, 0x800000, 3, 1}, /* AD7124_Offset_1 */
 	{0x2B, 0x800000, 3, 1}, /* AD7124_Offset_2 */

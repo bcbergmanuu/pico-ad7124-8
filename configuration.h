@@ -1,6 +1,6 @@
 #ifndef __CONFIGURATION
 #define __CONFIGURATION
 
-#include "config.joke.h"
+#include "config.respiratory.h"
 
 #endif
