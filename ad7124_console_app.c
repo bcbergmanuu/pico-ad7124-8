@@ -28,6 +28,7 @@ Copyright (c) 2019 Analog Devices, Inc.  All rights reserved.
 
 #include "ad7124_console_app.h"
 #include "adi_console_menu.h"
+#include "configuration.h"
 
 
 #define AD7124_CHANNEL_COUNT 16
@@ -144,6 +145,7 @@ static int32_t set_idle_mode() {
 	}
 }
 
+
 /*!
  * @brief      Continuously acquires samples in Continuous Conversion mode
  *
@@ -153,8 +155,7 @@ static int32_t set_idle_mode() {
  */
 static int32_t do_continuous_conversion(bool doVoltageConvertion)
 {
-
-	
+	static uint32_t toZeroValue = 0;
 
 	int32_t error_code;
 	int32_t sample_data;
@@ -175,9 +176,12 @@ static int32_t do_continuous_conversion(bool doVoltageConvertion)
 
 	uint8_t channel_read = 0;							
 	// Continuously read the channels, and store sample values
-    while (getchar_timeout_us(0) != 27) {  		  			    	
-				
-		
+	int pressedchar = 0;
+    while (pressedchar !=27) {  		  			    	
+		pressedchar = getchar_timeout_us(0);
+		if(pressedchar == 48) {
+			toZeroValue = to_ms_since_boot(get_absolute_time());
+		}
 		/*
 		*  this polls the status register READY/ bit to determine when conversion is done
 		*  this also ensures the STATUS register value is up to date and contains the
@@ -199,7 +203,7 @@ static int32_t do_continuous_conversion(bool doVoltageConvertion)
 			}
 			
 			if (channel_read == 0) {				
-				printf("\n%09d, ", to_ms_since_boot(get_absolute_time()));
+				printf("\n%09d, ", to_ms_since_boot(get_absolute_time()) - toZeroValue);
 				portvalues = gpio_get_all();
         		
 				printf("%i, ", portvalues & 0XFF);
@@ -484,7 +488,7 @@ console_menu_item main_menu_items[] = {
 };
 
 console_menu ad7124_main_menu = {
-    "AD7124 Main Menu",
+    "AD7124 Main Menu " boardname,
     main_menu_items,
 	ARRAY_SIZE(main_menu_items),
 	false
