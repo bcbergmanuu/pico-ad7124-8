@@ -205,6 +205,7 @@ static int32_t do_continuous_conversion(bool doVoltageConvertion)
 			}
 			
 			if (channel_read == 0) {	
+				/*
 				if(set_next_to_zero) {
 					set_next_to_zero = false;
 					toZeroValue = to_ms_since_boot(get_absolute_time());
@@ -216,9 +217,15 @@ static int32_t do_continuous_conversion(bool doVoltageConvertion)
 				portvalues = gpio_get_all();
         		
 				printf("%i, ", portvalues & 0XFF);
+				*/
+				printf("\n");
 			} else {
+				/*
 				printf(", ");
+				*/
+				printf("Label");				
 			}
+			
 			if(doVoltageConvertion) {
 				printf("%.8f", ad7124_convert_sample_to_voltage(pAd7124_dev, channel_read, sample_data) );				
 			} else { printf("%i", sample_data); }

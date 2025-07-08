@@ -12,7 +12,7 @@ Copyright (c) 2019 Analog Devices, Inc.
 #include "ad7124_regs.h"
 
 #define boardname "BALANCEBOARD03"
-#define filterFS 44 //joke
+#define filterFS 44
 
 const struct ad7124_st_reg ad7124_regs_config_a[AD7124_REG_NO] = {
     {0x00, 0x00,   1, 2}, /* AD7124_Status */
