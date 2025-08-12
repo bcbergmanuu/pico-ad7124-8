@@ -1,6 +1,6 @@
 #ifndef __CONFIGURATION
 #define __CONFIGURATION
 
-#include "config.respiratorybase.h"
+#include "config.stella.h"
 
 #endif
